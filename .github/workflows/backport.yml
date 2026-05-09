@@ -1,0 +1,29 @@
+name: Backport a develop
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  backport:
+    name: Crear PR de backport a develop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Crear PR main → develop
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: develop
+          branch: backport/main-to-develop-${{ github.sha }}
+          title: "chore: backport main → develop"
+          body: |
+            Backport automático de los cambios mergeados a `main`.
+
+            Revisá que no haya conflictos antes de mergear.
+          labels: backport

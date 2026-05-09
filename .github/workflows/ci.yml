@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  check-branch:
+    name: Verificar rama origen
+    runs-on: ubuntu-latest
+    if: github.base_ref == 'main'
+    steps:
+      - name: Validar que viene de release/* o hotfix/*
+        run: |
+          echo "Rama origen: ${{ github.head_ref }}"
+          if [[ "${{ github.head_ref }}" != release/* && "${{ github.head_ref }}" != hotfix/* ]]; then
+            echo "❌ Solo se puede mergear a main desde release/* o hotfix/*"
+            exit 1
+          fi
+
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurar dependencias
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Ejecutar tests
+        run: dotnet test --no-build --configuration Release --verbosity normal
