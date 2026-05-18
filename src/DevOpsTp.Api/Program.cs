@@ -1,6 +1,57 @@
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using DevOpsTp.Api.Quests;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "devops-tp-api";
+
+var serviceVersion = Environment.GetEnvironmentVariable("APP_VERSION")
+    ?? Environment.GetEnvironmentVariable("GIT_COMMIT")
+    ?? "1.0.0";
+
+var environmentName = builder.Environment.EnvironmentName;
+
+var otlpEndpointConfigured = !string.IsNullOrWhiteSpace(
+    Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
+);
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource
+        .AddService(
+            serviceName: serviceName,
+            serviceVersion: serviceVersion)
+        .AddAttributes(new[]
+        {
+            new KeyValuePair<string, object>("deployment.environment", environmentName)
+        }))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation(options =>
+            {
+                options.RecordException = true;
+            })
+            .AddHttpClientInstrumentation();
+
+        if (otlpEndpointConfigured)
+        {
+            tracing.AddOtlpExporter();
+        }
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation();
+
+        if (otlpEndpointConfigured)
+        {
+            metrics.AddOtlpExporter();
+        }
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

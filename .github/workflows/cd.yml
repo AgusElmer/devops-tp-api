@@ -6,29 +6,50 @@ on:
       - main
 
 jobs:
-  build:
-    name: Build Docker image
+  tag:
+    name: Generar versión semántica
     runs-on: ubuntu-latest
     outputs:
-      image-tag: ${{ steps.tag.outputs.value }}
+      version: ${{ steps.bump.outputs.new_tag }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version y crear tag
+        id: bump
+        uses: anothrNick/github-tag-action@1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+          WITH_V: false
+          TAG_CONTEXT: repo
+
+  build:
+    name: Build Docker image
+    needs: tag
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ needs.tag.outputs.version }}
 
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Generar tag de imagen
-        id: tag
-        run: echo "value=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
       - name: Construir imagen
         run: |
           docker build \
-            -t devops-tp-api:${{ steps.tag.outputs.value }} \
+            -t devops-tp-api:${{ needs.tag.outputs.version }} \
             -t devops-tp-api:latest \
             .
 
       - name: Guardar imagen como artefacto
-        run: docker save devops-tp-api:${{ steps.tag.outputs.value }} devops-tp-api:latest | gzip > /tmp/docker-image.tar.gz
+        run: docker save devops-tp-api:${{ needs.tag.outputs.version }} devops-tp-api:latest | gzip > /tmp/docker-image.tar.gz
 
       - name: Subir artefacto
         uses: actions/upload-artifact@v4
@@ -39,7 +60,7 @@ jobs:
 
   push-to-dockerhub:
     name: Push a Docker Hub
-    needs: build
+    needs: [tag, build]
     runs-on: ubuntu-latest
     environment: production
 
@@ -62,7 +83,7 @@ jobs:
       - name: Push imagen
         run: |
           IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/devops-tp-api"
-          TAG="${{ needs.build.outputs.image-tag }}"
+          TAG="${{ needs.tag.outputs.version }}"
 
           docker tag devops-tp-api:$TAG $IMAGE:$TAG
           docker tag devops-tp-api:latest $IMAGE:latest
