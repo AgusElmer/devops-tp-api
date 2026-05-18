@@ -40,4 +40,13 @@ public static class QuestStatuses
     public const string Accepted = "accepted";
     public const string Completed = "completed";
     public const string Abandoned = "abandoned";
+
+    public static readonly string[] All = [Available, Accepted, Completed, Abandoned];
 }
+
+public sealed record QuestSummary(
+    IReadOnlyDictionary<string, int> CountsByStatus,
+    IReadOnlyDictionary<string, int> CountsByRank,
+    int TotalCompletedQuests,
+    int TotalGoldRewarded,
+    int TotalXpRewarded);
