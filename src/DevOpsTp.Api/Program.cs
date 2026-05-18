@@ -1,9 +1,12 @@
+using DevOpsTp.Api.Quests;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();
+builder.Services.AddSingleton<QuestStore>();
 
 var app = builder.Build();
 
@@ -100,6 +103,8 @@ app.MapGet("/diagnostics/slow", async () =>
 })
 .WithName("SimulateSlowRequest")
 .WithTags("Diagnostics");
+
+app.MapQuestEndpoints();
 
 app.Run();
 
