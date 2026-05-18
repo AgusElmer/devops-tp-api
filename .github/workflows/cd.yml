@@ -1,0 +1,73 @@
+name: Release - Docker Hub
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.tag.outputs.value }}
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Generar tag de imagen
+        id: tag
+        run: echo "value=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Construir imagen
+        run: |
+          docker build \
+            -t devops-tp-api:${{ steps.tag.outputs.value }} \
+            -t devops-tp-api:latest \
+            .
+
+      - name: Guardar imagen como artefacto
+        run: docker save devops-tp-api:${{ steps.tag.outputs.value }} devops-tp-api:latest | gzip > /tmp/docker-image.tar.gz
+
+      - name: Subir artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/docker-image.tar.gz
+          retention-days: 1
+
+  push-to-dockerhub:
+    name: Push a Docker Hub
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Descargar imagen
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp
+
+      - name: Cargar imagen en Docker
+        run: docker load < /tmp/docker-image.tar.gz
+
+      - name: Login a Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push imagen
+        run: |
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/devops-tp-api"
+          TAG="${{ needs.build.outputs.image-tag }}"
+
+          docker tag devops-tp-api:$TAG $IMAGE:$TAG
+          docker tag devops-tp-api:latest $IMAGE:latest
+
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+
+          echo "Imagen publicada: $IMAGE:$TAG"
