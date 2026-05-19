@@ -41,9 +41,16 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      - name: Generar metadata de build
+        id: metadata
+        run: echo "build-date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_OUTPUT"
+
       - name: Construir imagen
         run: |
           docker build \
+            --build-arg APP_VERSION=${{ needs.tag.outputs.version }} \
+            --build-arg GIT_COMMIT=${{ github.sha }} \
+            --build-arg BUILD_DATE=${{ steps.metadata.outputs.build-date }} \
             -t devops-tp-api:${{ needs.tag.outputs.version }} \
             -t devops-tp-api:latest \
             .

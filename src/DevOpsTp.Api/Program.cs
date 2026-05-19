@@ -6,10 +6,9 @@ using DevOpsTp.Api.Quests;
 var builder = WebApplication.CreateBuilder(args);
 
 var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "devops-tp-api";
-
-var serviceVersion = Environment.GetEnvironmentVariable("APP_VERSION")
-    ?? Environment.GetEnvironmentVariable("GIT_COMMIT")
-    ?? "1.0.0";
+var appVersion = Environment.GetEnvironmentVariable("APP_VERSION") ?? ApiVersion.Current;
+var gitCommit = Environment.GetEnvironmentVariable("GIT_COMMIT") ?? "local";
+var buildDate = Environment.GetEnvironmentVariable("BUILD_DATE") ?? "local";
 
 var environmentName = builder.Environment.EnvironmentName;
 
@@ -21,7 +20,7 @@ builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource
         .AddService(
             serviceName: serviceName,
-            serviceVersion: serviceVersion)
+            serviceVersion: appVersion)
         .AddAttributes(new[]
         {
             new KeyValuePair<string, object>("deployment.environment", environmentName)
@@ -88,7 +87,7 @@ app.MapGet("/", (IWebHostEnvironment environment) =>
         description = "API skeleton for a DevOps practical project",
         status = "running",
         environment = environment.EnvironmentName,
-        version = ApiVersion.Current,
+        version = appVersion,
         timestamp = DateTimeOffset.UtcNow
     });
 })
@@ -115,9 +114,9 @@ app.MapGet("/version", () =>
 {
     return Results.Ok(new
     {
-        version = ApiVersion.Current,
-        commit = Environment.GetEnvironmentVariable("GIT_COMMIT") ?? "local",
-        buildDate = Environment.GetEnvironmentVariable("BUILD_DATE") ?? "local"
+        version = appVersion,
+        commit = gitCommit,
+        buildDate = buildDate
     });
 })
 .WithName("GetVersion")

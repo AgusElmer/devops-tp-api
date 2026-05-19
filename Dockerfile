@@ -22,6 +22,14 @@ RUN dotnet publish src/DevOpsTp.Api/DevOpsTp.Api.csproj -c Release -o /app/publi
 # Usamos una imagen más liviana, solo con lo necesario para ejecutar la API.
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 
+ARG APP_VERSION=local
+ARG GIT_COMMIT=local
+ARG BUILD_DATE=local
+
+ENV APP_VERSION=$APP_VERSION
+ENV GIT_COMMIT=$GIT_COMMIT
+ENV BUILD_DATE=$BUILD_DATE
+
 WORKDIR /app
 
 # Instalamos curl para que Docker pueda validar el healthcheck.
