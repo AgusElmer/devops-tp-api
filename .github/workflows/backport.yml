@@ -18,14 +18,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.BACKPORT_TOKEN }}
 
       - name: Preparar rama de backport
         id: backport
         env:
           BACKPORT_BRANCH: backport/main-to-develop-${{ github.sha }}
+          BACKPORT_TOKEN: ${{ secrets.BACKPORT_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${BACKPORT_TOKEN}@github.com/${{ github.repository }}.git"
 
           git fetch origin main develop
           git checkout -B "$BACKPORT_BRANCH" origin/develop
@@ -51,7 +54,7 @@ jobs:
       - name: Crear PR main → develop
         if: steps.backport.outputs.has_changes == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BACKPORT_TOKEN }}
           BACKPORT_BRANCH: ${{ steps.backport.outputs.branch }}
         run: |
           gh label create backport \
