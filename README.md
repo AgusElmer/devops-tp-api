@@ -103,27 +103,43 @@ El repositorio utiliza GitHub Actions:
 - Build y tests automatizados.
 - Validación de flujo de mergeo hacia `main`.
 - CD en push a `main`.
-- Generación de versión semántica.
+- Generación de versión semántica (según `#patch`, `#minor`, `#major` o `#none` en el mensaje de commit).
 - Build de imagen Docker.
-- Publicación de imagen en Docker Hub.
-- Deploy continuo en Render mediante deploy hook.
-- Backport automático desde `main` hacia `develop`.
+- Publicación de imagen en Docker Hub (`<usuario>/devops-tp-api:<version>` y `:latest`).
+- Deploy continuo en Render mediante deploy hook con `imgURL`.
+- Backport automático desde `main` hacia `develop` (PR automático que dispara CI).
+
+### Secrets requeridos en GitHub Actions
+
+Configurar en el repositorio (Settings → Secrets and variables → Actions), sin valores en el código:
+
+| Secret | Uso |
+|---|---|
+| `DOCKERHUB_USERNAME` | Usuario de Docker Hub, también define el nombre de la imagen |
+| `DOCKERHUB_TOKEN` | Access token de Docker Hub con permisos Read/Write |
+| `RENDER_DEPLOY_HOOK_URL` | Deploy hook del servicio en Render |
+| `BACKPORT_TOKEN` | Fine-grained PAT (Contents RW, Pull requests RW, Issues RW, Metadata RO) para el PR automático de backport |
+
+La license key de New Relic **no** va en GitHub: se configura como variable de entorno en Render (ver `docs/monitoreo.md`).
 
 ## Deploy
 
 Ambiente publicado en Render:
 
 ```txt
-https://tp-devops-g3-2026.onrender.com
+https://devops-tp-api.onrender.com
 ```
 
 Endpoints útiles para validar el deploy:
 
 ```bash
-curl https://tp-devops-g3-2026.onrender.com/health
-curl https://tp-devops-g3-2026.onrender.com/api/quests
-curl https://tp-devops-g3-2026.onrender.com/api/quests/summary
+curl https://devops-tp-api.onrender.com/health
+curl https://devops-tp-api.onrender.com/version
+curl https://devops-tp-api.onrender.com/api/quests
+curl https://devops-tp-api.onrender.com/api/quests/summary
 ```
+
+El servicio en Render se crea como Web Service a partir de una imagen existente de Docker Hub (`docker.io/<usuario>/devops-tp-api:latest`), con puerto 8080 y health check en `/health`. Las variables de entorno de monitoreo se detallan en `docs/monitoreo.md`.
 
 ## Monitoreo
 
@@ -150,11 +166,26 @@ docs/monitoreo.md
 - [x] Deploy en Render
 - [x] Monitoreo base con OpenTelemetry y New Relic
 - [x] Semantic versioning
+- [x] `/version` con commit, build date y versión semántica real del deploy
+- [x] Backport automático `main` → `develop`
 
-## Pendientes / mejoras posibles
+## Checklist de entrega
 
-- Confirmar dashboard de New Relic con evidencia en capturas.
-- Documentar rollback operativo de una versión deployada.
-- Mejorar `/version` para mostrar commit, build date y versión semántica real del deploy.
-- Agregar release notes automáticas.
-- Configurar protección de ramas en GitHub si todavía no está aplicada desde la UI.
+- [ ] Repo en GitHub con ramas `main` y `develop` protegidas (PR obligatorio + check `Build & Test`).
+- [ ] Secrets configurados: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `RENDER_DEPLOY_HOOK_URL`, `BACKPORT_TOKEN`.
+- [ ] CI verde en un PR hacia `develop`.
+- [ ] CD verde en push a `main`: tag semántico + imagen en Docker Hub (`:<version>` y `:latest`).
+- [ ] Servicio en Render activo con la imagen de Docker Hub y health check en `/health`.
+- [ ] Variables de OpenTelemetry configuradas en Render (license key de New Relic solo ahí).
+- [ ] Servicio `devops-tp-api` visible en New Relic con throughput, latencia, errores y traces.
+- [ ] Capturas de evidencia en `docs/screenshots/` (APM overview, throughput, response time, errors, traces).
+
+## Demo para la presentación
+
+1. Mostrar la API viva: `curl https://devops-tp-api.onrender.com/health` y `/version` (versión, commit y build date reales del deploy).
+2. Mostrar el módulo de quests: `GET /api/quests` y `GET /api/quests/summary`.
+3. Mostrar el pipeline: crear una rama `release/*` o `hotfix/*`, abrir PR a `main`, mostrar CI (`Build & Test`) y el check de flujo de ramas.
+4. Mergear a `main` con `#patch` en el mensaje y mostrar el CD: tag nuevo, push a Docker Hub y deploy hook a Render.
+5. Mostrar el PR automático de backport `main` → `develop` con su CI corriendo.
+6. Generar tráfico: `./scripts/generate-demo-traffic.sh` (o con `BASE_URL=<url>` para otro ambiente).
+7. Mostrar New Relic: APM overview, throughput, response time (pico de `/diagnostics/slow`), errores (`/diagnostics/error`) y un trace.

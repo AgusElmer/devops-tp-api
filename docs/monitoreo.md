@@ -64,9 +64,27 @@ Esta selección se alinea con los Golden Signals de observabilidad: latencia, tr
 Para generar trafico y trazas de prueba:
 
 ```bash
-curl https://tp-devops-g3-2026.onrender.com/health
-curl https://tp-devops-g3-2026.onrender.com/diagnostics/slow
-curl -i https://tp-devops-g3-2026.onrender.com/diagnostics/error
+curl https://devops-tp-api.onrender.com/health
+curl https://devops-tp-api.onrender.com/diagnostics/slow
+curl -i https://devops-tp-api.onrender.com/diagnostics/error
+```
+
+Para generar un volumen de trafico mas completo (lecturas, creacion de quests, ciclo de vida, latencia y errores) se puede usar el script:
+
+```bash
+BASE_URL=https://devops-tp-api.onrender.com ./scripts/generate-demo-traffic.sh
 ```
 
 En New Relic se debe validar que aparezca el servicio `devops-tp-api` con metricas de requests, latencia, errores y runtime .NET.
+
+## Evidencia sugerida (capturas)
+
+Para documentar la entrega, tomar capturas de:
+
+- APM overview del servicio `devops-tp-api`.
+- Throughput (requests por minuto).
+- Response time (incluyendo el pico generado por `/diagnostics/slow`).
+- Errors (errores generados por `/diagnostics/error`).
+- Distributed traces de un request.
+
+Guardarlas en `docs/screenshots/`.
