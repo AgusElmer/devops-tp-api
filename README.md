@@ -108,6 +108,7 @@ El repositorio utiliza GitHub Actions:
 - Publicación de imagen en Docker Hub (`<usuario>/devops-tp-api:<version>` y `:latest`).
 - Deploy continuo en Render mediante deploy hook con `imgURL`.
 - Backport automático desde `main` hacia `develop` (PR automático que dispara CI).
+- Rollback manual a cualquier versión publicada (workflow `Rollback - Render`).
 
 ### Secrets requeridos en GitHub Actions
 
@@ -141,6 +142,17 @@ curl https://devops-tp-api.onrender.com/api/quests/summary
 
 El servicio en Render se crea como Web Service a partir de una imagen existente de Docker Hub (`docker.io/<usuario>/devops-tp-api:latest`), con puerto 8080 y health check en `/health`. Las variables de entorno de monitoreo se detallan en `docs/monitoreo.md`.
 
+### Rollback
+
+Si una versión deployada presenta problemas (por ejemplo, errores detectados en New Relic), se puede volver a cualquier versión anterior publicada en Docker Hub sin revertir código:
+
+1. Ir a **Actions → Rollback - Render → Run workflow**.
+2. Ingresar la versión a restaurar (ej. `0.1.1`).
+3. El workflow valida que la imagen exista en Docker Hub y dispara el deploy hook de Render con esa imagen (`imgURL`).
+4. Verificar con `curl https://devops-tp-api.onrender.com/version` que la versión activa sea la esperada.
+
+Como cada versión queda inmutable en Docker Hub gracias al versionado semántico del CD, el rollback es determinístico: se redeploya exactamente el mismo artefacto que se construyó en su momento.
+
 ## Monitoreo
 
 La API está instrumentada con OpenTelemetry para exportar métricas y trazas a New Relic mediante OTLP.
@@ -168,6 +180,7 @@ docs/monitoreo.md
 - [x] Semantic versioning
 - [x] `/version` con commit, build date y versión semántica real del deploy
 - [x] Backport automático `main` → `develop`
+- [x] Rollback de la versión deployada vía workflow manual
 
 ## Checklist de entrega
 
@@ -189,3 +202,4 @@ docs/monitoreo.md
 5. Mostrar el PR automático de backport `main` → `develop` con su CI corriendo.
 6. Generar tráfico: `./scripts/generate-demo-traffic.sh` (o con `BASE_URL=<url>` para otro ambiente).
 7. Mostrar New Relic: APM overview, throughput, response time (pico de `/diagnostics/slow`), errores (`/diagnostics/error`) y un trace.
+8. Rollback en vivo ("Andon cord"): ante los errores vistos en New Relic, ejecutar **Actions → Rollback - Render** con la versión anterior y mostrar cómo `/version` vuelve a esa versión en ~1 minuto, sin tocar el código.
