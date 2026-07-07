@@ -1,0 +1,45 @@
+name: Rollback - Render
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión a deployar (tag existente en Docker Hub, ej. 0.1.1)"
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback a versión anterior
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Verificar que la imagen exista en Docker Hub
+        run: |
+          VERSION="${{ inputs.version }}"
+          URL="https://hub.docker.com/v2/repositories/${{ secrets.DOCKERHUB_USERNAME }}/devops-tp-api/tags/${VERSION}"
+
+          if ! curl -sf "$URL" > /dev/null; then
+            echo "❌ La imagen devops-tp-api:${VERSION} no existe en Docker Hub"
+            exit 1
+          fi
+
+          echo "✅ Imagen encontrada: devops-tp-api:${VERSION}"
+
+      - name: Disparar deploy en Render con la imagen elegida
+        run: |
+          VERSION="${{ inputs.version }}"
+          IMAGE="docker.io/${{ secrets.DOCKERHUB_USERNAME }}/devops-tp-api:${VERSION}"
+          HOOK="${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+          if [[ "$HOOK" == *"?"* ]]; then
+            DEPLOY_URL="${HOOK}&imgURL=${IMAGE}"
+          else
+            DEPLOY_URL="${HOOK}?imgURL=${IMAGE}"
+          fi
+
+          curl -s --fail -X POST "$DEPLOY_URL"
+
+          echo "Rollback disparado en Render con imagen: $IMAGE"
+          echo "Validar con: curl https://devops-tp-api.onrender.com/version"
