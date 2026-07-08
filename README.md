@@ -209,3 +209,4 @@ docs/monitoreo.md
 6. Generar tráfico: `./scripts/generate-demo-traffic.sh` (o con `BASE_URL=<url>` para otro ambiente).
 7. Mostrar New Relic: APM overview, throughput, response time (pico de `/diagnostics/slow`), errores (`/diagnostics/error`) y un trace.
 8. Rollback en vivo ("Andon cord"): ante los errores vistos en New Relic, ejecutar **Actions → Rollback - Render** con la versión anterior y mostrar cómo `/version` vuelve a esa versión en ~1 minuto, sin tocar el código.
+<- No se incorpora base de datos en la primera etapa para evitar complejidad demo: corrida de SonarCloud -->
