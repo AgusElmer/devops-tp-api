@@ -1,0 +1,80 @@
+name: SonarCloud
+
+# Análisis estático de calidad y seguridad con SonarCloud.
+# Corre en cada PR hacia develop/main (para que el Quality Gate aparezca como
+# check del PR) y en cada push a esas ramas (para poblar el dashboard y el badge).
+#
+# Requisitos previos (una sola vez, ver docs/sonarcloud.md):
+#   1. Crear la organización y el proyecto en https://sonarcloud.io (importando este repo).
+#   2. Desactivar "Automatic Analysis" en el proyecto (usamos análisis por CI).
+#   3. Cargar el secret SONAR_TOKEN en GitHub (Settings → Secrets → Actions).
+#   4. Ajustar SONAR_ORG y SONAR_PROJECT_KEY abajo si difieren de los generados.
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  SONAR_ORG: aguselmer
+  SONAR_PROJECT_KEY: AgusElmer_devops-tp-api
+
+jobs:
+  sonarcloud:
+    name: Análisis SonarCloud
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          # Historia completa: SonarCloud la necesita para el blame y la
+          # detección de "new code" (base de los Quality Gates).
+          fetch-depth: 0
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Configurar JDK 17
+        # El scanner de SonarCloud corre sobre la JVM.
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cachear paquetes de SonarCloud
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Instalar dotnet-sonarscanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Analizar (begin → build → test → end)
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"${SONAR_PROJECT_KEY}" \
+            /o:"${SONAR_ORG}" \
+            /d:sonar.token="${SONAR_TOKEN}" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.cs.opencover.reportsPaths="${{ github.workspace }}/coverage/**/coverage.opencover.xml" \
+            /d:sonar.qualitygate.wait=true
+
+          dotnet build --configuration Release
+
+          dotnet test --no-build --configuration Release \
+            --collect:"XPlat Code Coverage;Format=opencover" \
+            --results-directory "${{ github.workspace }}/coverage"
+
+          dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"

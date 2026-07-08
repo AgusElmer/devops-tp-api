@@ -1,5 +1,7 @@
 # DevOps TP API
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=AgusElmer_devops-tp-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=AgusElmer_devops-tp-api)
+
 API desarrollada para el trabajo práctico integrador de DevOps.
 
 El objetivo del proyecto es construir una API simple y utilizarla como base para aplicar prácticas DevOps:
@@ -24,6 +26,7 @@ El objetivo del proyecto es construir una API simple y utilizarla como base para
 - GitHub Actions
 - Docker Hub
 - Render
+- SonarCloud
 - OpenTelemetry
 - New Relic
 
@@ -101,6 +104,7 @@ El repositorio utiliza GitHub Actions:
 
 - CI en pull requests hacia `develop` y `main`.
 - Build y tests automatizados.
+- Análisis de calidad y seguridad con SonarCloud (Quality Gate como check del PR; ver `docs/sonarcloud.md`).
 - Validación de flujo de mergeo hacia `main`.
 - CD en push a `main`.
 - Generación de versión semántica (según `#patch`, `#minor`, `#major` o `#none` en el mensaje de commit).
@@ -120,6 +124,7 @@ Configurar en el repositorio (Settings → Secrets and variables → Actions), s
 | `DOCKERHUB_TOKEN` | Access token de Docker Hub con permisos Read/Write |
 | `RENDER_DEPLOY_HOOK_URL` | Deploy hook del servicio en Render |
 | `BACKPORT_TOKEN` | Fine-grained PAT (Contents RW, Pull requests RW, Issues RW, Metadata RO) para el PR automático de backport |
+| `SONAR_TOKEN` | Token de SonarCloud para el análisis de calidad en CI (ver `docs/sonarcloud.md`) |
 
 La license key de New Relic **no** va en GitHub: se configura como variable de entorno en Render (ver `docs/monitoreo.md`).
 
@@ -181,11 +186,12 @@ docs/monitoreo.md
 - [x] `/version` con commit, build date y versión semántica real del deploy
 - [x] Backport automático `main` → `develop`
 - [x] Rollback de la versión deployada vía workflow manual
+- [x] Análisis de calidad y seguridad con SonarCloud (Quality Gate en PRs)
 
 ## Checklist de entrega
 
 - [ ] Repo en GitHub con ramas `main` y `develop` protegidas (PR obligatorio + check `Build & Test`).
-- [ ] Secrets configurados: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `RENDER_DEPLOY_HOOK_URL`, `BACKPORT_TOKEN`.
+- [ ] Secrets configurados: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `RENDER_DEPLOY_HOOK_URL`, `BACKPORT_TOKEN`, `SONAR_TOKEN`.
 - [ ] CI verde en un PR hacia `develop`.
 - [ ] CD verde en push a `main`: tag semántico + imagen en Docker Hub (`:<version>` y `:latest`).
 - [ ] Servicio en Render activo con la imagen de Docker Hub y health check en `/health`.
