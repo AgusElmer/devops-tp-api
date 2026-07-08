@@ -63,16 +63,22 @@ El workflow le pasa a SonarCloud la ruta de los reportes con
 
 ## Quality Gate
 
-El workflow corre `dotnet sonarscanner end` con `sonar.qualitygate.wait=true`, de
-modo que **el job de CI espera el veredicto del Quality Gate y falla si no se
-cumple**. Por defecto SonarCloud usa el gate *Sonar way*, que evalúa el **código
-nuevo** (bugs, vulnerabilidades, cobertura y duplicación sobre lo que cambió en
-el PR).
+Por defecto SonarCloud usa el gate *Sonar way*, que evalúa el **código nuevo**
+(bugs, vulnerabilidades, cobertura y duplicación sobre lo que cambió en el PR).
 
-- Si en algún momento el gate resulta demasiado estricto para la cursada, se
-  puede quitar `/d:sonar.qualitygate.wait=true` del workflow: el análisis se
-  sigue publicando, pero deja de bloquear el PR.
-- El gate y sus umbrales se ajustan desde SonarCloud (**Quality Gates**).
+El bloqueo de merges **no** lo hace el scanner, sino la **protección de rama** de
+GitHub sobre el check nativo de SonarCloud, llamado **`SonarCloud Code Analysis`**
+(lo postea la app de SonarCloud en cada PR y refleja el estado del gate). Para
+activarlo: **Settings → Branches → regla de `develop`/`main` → Require status
+checks → marcar `SonarCloud Code Analysis`** (y `Build & Test`). Así, si el gate
+queda en rojo, el PR no se puede mergear.
+
+- Se evita `sonar.qualitygate.wait=true` en el scanner a propósito: ese poll
+  falla de forma intermitente en el primer análisis de una rama nueva
+  (`Not authorized or project not found`). El check de la app es más confiable.
+- El gate y sus umbrales se ajustan desde SonarCloud (**Quality Gates**). Si el
+  requisito de 80% de cobertura sobre código nuevo resulta estricto para la
+  cursada, se puede clonar el gate y bajar/quitar esa condición.
 
 ## Operación diaria
 
